@@ -1,4 +1,5 @@
 import java.io.File
+import java.nio.file.Paths
 import java.util.Scanner
 
 class Sudoku(val field: ArrayList<ArrayList<Int>>) {
@@ -29,7 +30,7 @@ class Sudoku(val field: ArrayList<ArrayList<Int>>) {
         }
     }
 
-    fun fillInTheCell(row: Int, column: Int, number: Int) {
+    private fun fillInTheCell(row: Int, column: Int, number: Int) {
         field[row][column] = number
         possibleInSquare[row / 3 * 3 + column / 3].remove(number)
         possibleInRow[row].remove(number)
@@ -46,22 +47,44 @@ class Sudoku(val field: ArrayList<ArrayList<Int>>) {
                 fillInTheCell(i, j, possibleInCell.first())
                 filled = true
             } else {
-                /*cells@ for (k in 0 until 9) {
-                    val possibleInOtherCellInRow =
-                        possibleInColumn[k].intersect(possibleInRow[i].intersect(possibleInSquare[i / 3 * 3 + k / 3]))
-                    val possibleInOtherCellInColumn =
-                        possibleInColumn[j].intersect(possibleInRow[k].intersect(possibleInSquare[k / 3 * 3 + j / 3]))
-                    val possibleInOtherCellInSquare = possibleInColumn[j / 3 * 3 + k % 3].intersect(
-                        possibleInRow[i / 3 * 3 + k / 3].intersect(possibleInSquare[i / 3 * 3 + j / 3])
-                    )
-                    for (number in possibleInCell) {
-                        if (!(number in possibleInOtherCellInColumn || number in possibleInOtherCellInRow || number in possibleInOtherCellInSquare)) {
-                            fillInTheCell(i, j, number)
-                            filled = true
-                            break@cells
-                        }
+                val possibleInOtherCellsInRow = mutableSetOf<Int>()
+                val possibleInOtherCellsInColumn = mutableSetOf<Int>()
+                val possibleInOtherCellsInSquare = mutableSetOf<Int>()
+                for (k in 0 until 9) {
+                    val iForSquare = i / 3 * 3 + k / 3
+                    val jForSquare = j / 3 * 3 + k % 3
+                    if (field[i][k] == 0 && k != j)
+                        possibleInOtherCellsInRow.addAll(
+                            possibleInColumn[k].intersect(
+                                possibleInRow[i].intersect(
+                                    possibleInSquare[i / 3 * 3 + k / 3]
+                                )
+                            )
+                        )
+                    if (field[k][j] == 0 && k != i)
+                        possibleInOtherCellsInColumn.addAll(
+                            possibleInColumn[j].intersect(
+                                possibleInRow[k].intersect(
+                                    possibleInSquare[k / 3 * 3 + j / 3]
+                                )
+                            )
+                        )
+                    if (field[iForSquare][jForSquare] == 0 && Pair(iForSquare, jForSquare) != Pair(i, j))
+                        possibleInOtherCellsInSquare.addAll(
+                            possibleInColumn[jForSquare].intersect(
+                                possibleInRow[iForSquare].intersect(
+                                    possibleInSquare[i / 3 * 3 + j / 3]
+                                )
+                            )
+                        )
+                }
+                for (number in possibleInCell) {
+                    if (number !in possibleInOtherCellsInRow || number !in possibleInOtherCellsInColumn || number !in possibleInOtherCellsInSquare) {
+                        fillInTheCell(i, j, number)
+                        filled = true
+                        break
                     }
-                }*/
+                }
             }
             if (!filled)
                 newEmptyCells.add(Pair(i, j))
@@ -118,6 +141,16 @@ class Sudoku(val field: ArrayList<ArrayList<Int>>) {
         }
         return false
     }
+
+    override fun hashCode(): Int {
+        var result = field.hashCode()
+        result = 31 * result + fieldSize
+        result = 31 * result + possibleInRow.hashCode()
+        result = 31 * result + possibleInColumn.hashCode()
+        result = 31 * result + possibleInSquare.hashCode()
+        result = 31 * result + emptyCells.hashCode()
+        return result
+    }
 }
 
 
@@ -131,7 +164,9 @@ fun solve(sudoku: Sudoku) {
 
 fun main() {
     val input: ArrayList<ArrayList<Int>> = ArrayList()
-    val sc = Scanner(File("C:\\Users\\vaney\\IdeaProjects\\untitled3\\src\\main\\kotlin\\input.txt"))
+    val dirPath = "${Paths.get("").toAbsolutePath()}\\src\\main\\kotlin\\"
+    val paths= listOf(dirPath + "testInput.txt", dirPath + "easyInput.txt", dirPath + "mediumInput.txt")
+    val sc = Scanner(File(paths[0]))
     for (i in 0 until 9) {
         input.add(arrayListOf())
         for (j in 0 until 9) {
