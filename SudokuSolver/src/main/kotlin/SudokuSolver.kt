@@ -6,23 +6,19 @@ class Sudoku(private val field: ArrayList<ArrayList<Int>>) {
 
     private val fieldSize = 9
 
-    private val possibleInRow: ArrayList<MutableSet<Int>> = ArrayList()
-    private val possibleInColumn: ArrayList<MutableSet<Int>> = ArrayList()
-    private val possibleInSquare: ArrayList<MutableSet<Int>> = ArrayList()
+    private val possibleInCells: ArrayList<ArrayList<MutableSet<Int>>> = ArrayList()
     private val emptyCells: ArrayList<Pair<Int, Int>> = ArrayList()
 
     init {
         for (i in 0 until fieldSize) {
-            possibleInSquare.add(mutableSetOf(1, 2, 3, 4, 5, 6, 7, 8, 9))
-            possibleInColumn.add(mutableSetOf(1, 2, 3, 4, 5, 6, 7, 8, 9))
-            possibleInRow.add(mutableSetOf(1, 2, 3, 4, 5, 6, 7, 8, 9))
+            possibleInCells.add(arrayListOf())
+            for (j in 0 until fieldSize)
+                possibleInCells[i].add(mutableSetOf(1, 2, 3, 4, 5, 6, 7, 8, 9))
         }
         for (i in 0 until fieldSize) {
             for (j in 0 until fieldSize) {
                 if (field[i][j] != 0) {
-                    possibleInRow[i].remove(field[i][j])
-                    possibleInColumn[j].remove(field[i][j])
-                    possibleInSquare[i / 3 * 3 + j / 3].remove(field[i][j])
+                    fillInTheCell(i, j, field[i][j])
                 } else {
                     emptyCells.add(Pair(i, j))
                 }
@@ -32,12 +28,19 @@ class Sudoku(private val field: ArrayList<ArrayList<Int>>) {
 
     private fun fillInTheCell(row: Int, column: Int, number: Int) {
         field[row][column] = number
-        possibleInSquare[row / 3 * 3 + column / 3].remove(number)
-        possibleInRow[row].remove(number)
-        possibleInColumn[column].remove(number)
+        for (k in 0 until 9) {
+            val iForSquare = row / 3 * 3 + k / 3
+            val jForSquare = column / 3 * 3 + k % 3
+            possibleInCells[row][k].remove(field[row][column])
+            possibleInCells[k][column].remove(field[row][column])
+            possibleInCells[iForSquare][jForSquare].remove(field[row][column])
+        }
     }
 
-    private fun getPossibleInOtherCells(row: Int, column: Int): ArrayList<MutableSet<Int>> {
+    private fun getPossibleInOtherCells(
+        row: Int,
+        column: Int
+    ): Triple<MutableSet<Int>, MutableSet<Int>, MutableSet<Int>> {
         val possibleInOtherCellsInRow = mutableSetOf<Int>()
         val possibleInOtherCellsInColumn = mutableSetOf<Int>()
         val possibleInOtherCellsInSquare = mutableSetOf<Int>()
@@ -45,31 +48,13 @@ class Sudoku(private val field: ArrayList<ArrayList<Int>>) {
             val iForSquare = row / 3 * 3 + k / 3
             val jForSquare = column / 3 * 3 + k % 3
             if (field[row][k] == 0 && k != column)
-                possibleInOtherCellsInRow.addAll(
-                    possibleInColumn[k].intersect(
-                        possibleInRow[row].intersect(
-                            possibleInSquare[row / 3 * 3 + k / 3]
-                        )
-                    )
-                )
+                possibleInOtherCellsInRow.addAll(possibleInCells[row][k])
             if (field[k][column] == 0 && k != row)
-                possibleInOtherCellsInColumn.addAll(
-                    possibleInColumn[column].intersect(
-                        possibleInRow[k].intersect(
-                            possibleInSquare[k / 3 * 3 + column / 3]
-                        )
-                    )
-                )
+                possibleInOtherCellsInColumn.addAll(possibleInCells[k][column])
             if (field[iForSquare][jForSquare] == 0 && Pair(iForSquare, jForSquare) != Pair(row, column))
-                possibleInOtherCellsInSquare.addAll(
-                    possibleInColumn[jForSquare].intersect(
-                        possibleInRow[iForSquare].intersect(
-                            possibleInSquare[row / 3 * 3 + column / 3]
-                        )
-                    )
-                )
+                possibleInOtherCellsInSquare.addAll(possibleInCells[iForSquare][jForSquare])
         }
-        return arrayListOf(possibleInOtherCellsInRow, possibleInOtherCellsInColumn, possibleInOtherCellsInSquare)
+        return Triple(possibleInOtherCellsInRow, possibleInOtherCellsInColumn, possibleInOtherCellsInSquare)
     }
 
     private fun getNakedPairs() {
@@ -80,15 +65,13 @@ class Sudoku(private val field: ArrayList<ArrayList<Int>>) {
         val newEmptyCells: ArrayList<Pair<Int, Int>> = ArrayList()
         for ((i, j) in emptyCells) {
             var filled = false
-            val possibleInCell =
-                possibleInColumn[j].intersect(possibleInRow[i].intersect(possibleInSquare[i / 3 * 3 + j / 3]))
-            if (possibleInCell.size == 1) {
-                fillInTheCell(i, j, possibleInCell.first())
+            if (possibleInCells[i][j].size == 1) {
+                fillInTheCell(i, j, possibleInCells[i][j].first())
                 filled = true
             } else {
                 val possibleInOtherCells = getPossibleInOtherCells(i, j)
-                for (number in possibleInCell) {
-                    if (number !in possibleInOtherCells[0] || number !in possibleInOtherCells[1] || number !in possibleInOtherCells[2]) {
+                for (number in possibleInCells[i][j]) {
+                    if (number !in possibleInOtherCells.first || number !in possibleInOtherCells.second || number !in possibleInOtherCells.third) {
                         fillInTheCell(i, j, number)
                         filled = true
                         break
@@ -103,8 +86,11 @@ class Sudoku(private val field: ArrayList<ArrayList<Int>>) {
     }
 
     fun solve() {
-        while (isNotSolved())
+        print()
+        while (isNotSolved()) {
             fillInEmptyCells()
+            print()
+        }
     }
 
     fun print() {
