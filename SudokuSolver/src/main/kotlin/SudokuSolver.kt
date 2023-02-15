@@ -116,7 +116,7 @@ fun main() {
     val input: ArrayList<ArrayList<Int>> = ArrayList()
     val dirPath = "${Paths.get("").toAbsolutePath()}\\src\\main\\kotlin\\"
     val paths = listOf(dirPath + "testInput.txt", dirPath + "easyInput.txt", dirPath + "mediumInput.txt")
-    val sc = Scanner(File(paths[0]))
+    val sc = Scanner(File(paths[2]))
     for (i in 0 until 9) {
         input.add(arrayListOf())
         for (j in 0 until 9) {
