@@ -1,5 +1,6 @@
 import java.io.File
 import java.nio.file.Paths
+import java.util.Arrays
 import java.util.Scanner
 
 class Sudoku(private val field: ArrayList<ArrayList<Int>>) {
@@ -28,6 +29,7 @@ class Sudoku(private val field: ArrayList<ArrayList<Int>>) {
 
     private fun fillInTheCell(row: Int, column: Int, number: Int) {
         field[row][column] = number
+        possibleInCells[row][column].clear()
         for (k in 0 until 9) {
             val iForSquare = row / 3 * 3 + k / 3
             val jForSquare = column / 3 * 3 + k % 3
@@ -57,8 +59,65 @@ class Sudoku(private val field: ArrayList<ArrayList<Int>>) {
         return Triple(possibleInOtherCellsInRow, possibleInOtherCellsInColumn, possibleInOtherCellsInSquare)
     }
 
-    private fun getNakedPairs() {
+    private fun checkForNakedPairsInRow(row: Int) {
+        val possibleNakedPairs: MutableMap<MutableSet<Int>, ArrayList<Pair<Int, Int>>> = mutableMapOf()
+        for (k in 0 until 9) {
+            if (possibleInCells[row][k].size == 2) {
+                if (possibleInCells[row][k] in possibleNakedPairs.keys) {
+                    possibleNakedPairs[possibleInCells[row][k]]?.add(Pair(row, k))
+                } else {
+                    possibleNakedPairs[possibleInCells[row][k]] = arrayListOf(Pair(row, k))
+                }
+            }
+        }
+        val nakedPairs: ArrayList<MutableSet<Int>> = arrayListOf()
+        for (pair in possibleNakedPairs.values) {
+            if (pair.size == 2) {
+                val pairNumbers=possibleInCells[pair[0].first][pair[0].second]
+                nakedPairs.add(pairNumbers)
+            }
+        }
+        for (k in 0 until 9){
+            for (pair in nakedPairs){
+                if (possibleInCells[row][k]!=pair){
+                    pair.forEach { possibleInCells[row][k].remove(it) }
+                }
+            }
+        }
+    }
 
+    private fun checkForNakedPairsInColumn(column: Int){
+        val possibleNakedPairs: MutableMap<MutableSet<Int>, ArrayList<Pair<Int, Int>>> = mutableMapOf()
+        for (k in 0 until 9) {
+            if (possibleInCells[k][column].size == 2) {
+                if (possibleInCells[k][column] in possibleNakedPairs.keys) {
+                    possibleNakedPairs[possibleInCells[k][column]]?.add(Pair(k, column))
+                } else {
+                    possibleNakedPairs[possibleInCells[k][column]] = arrayListOf(Pair(k, column))
+                }
+            }
+        }
+        val nakedPairs: ArrayList<MutableSet<Int>> = arrayListOf()
+        for (pair in possibleNakedPairs.values) {
+            if (pair.size == 2) {
+                val pairNumbers=possibleInCells[pair[0].first][pair[0].second]
+                nakedPairs.add(pairNumbers)
+            }
+        }
+        for (k in 0 until 9){
+            for (pair in nakedPairs){
+                if (possibleInCells[k][column]!=pair){
+                    pair.forEach { possibleInCells[k][column].remove(it) }
+                }
+            }
+        }
+    }
+
+    private fun checkForNakedPairs(){
+        for (k in 0 until 9){
+            checkForNakedPairsInRow(k)
+            checkForNakedPairsInColumn(k)
+        }
     }
 
     private fun fillInEmptyCells() {
@@ -88,6 +147,7 @@ class Sudoku(private val field: ArrayList<ArrayList<Int>>) {
     fun solve() {
         print()
         while (isNotSolved()) {
+            checkForNakedPairs()
             fillInEmptyCells()
             print()
         }
